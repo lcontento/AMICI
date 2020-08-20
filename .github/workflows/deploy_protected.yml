@@ -4,6 +4,9 @@ on:
     branches:
       - master
       - develop
+  pull_equest:
+    branches:
+      - master
 
 jobs:
   dockerhub:
