@@ -182,6 +182,7 @@ hoverxref_role_types = {
     'func': 'tooltip',
     'mod': 'tooltip',
     'class': 'tooltip',
+    'obj': 'tooltip',
 }
 # -- Options for HTML output -------------------------------------------------
 
