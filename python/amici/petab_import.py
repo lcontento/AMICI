@@ -24,6 +24,7 @@ import sympy as sp
 from amici.logging import get_logger, log_execution_time, set_log_level
 from amici.petab_import_pysb import PysbPetabProblem, import_model_pysb
 from petab.C import *
+from petab.observables import get_output_parameters
 
 logger = get_logger(__name__, logging.WARNING)
 
@@ -472,19 +473,9 @@ def import_model_sbml(sbml_model: Union[str, 'libsbml.Model'],
     #  so we add any output parameters to the SBML model.
     #  this should be changed to something more elegant
     # <BeginWorkAround>
-    formulas = chain((val['formula'] for val in observables.values()),
-                     sigmas.values())
-    output_parameters = OrderedDict()
-    for formula in formulas:
-        # we want reproducible parameter ordering upon repeated import
-        free_syms = sorted(sp.sympify(formula).free_symbols,
-                           key=lambda symbol: symbol.name)
-        for free_sym in free_syms:
-            sym = str(free_sym)
-            if sbml_model.getElementBySId(sym) is None and sym != 'time':
-                output_parameters[sym] = None
+    output_parameters = get_output_parameters(observable_df, sbml_model)
     logger.debug(f"Adding output parameters to model: {output_parameters}")
-    for par in output_parameters.keys():
+    for par in output_parameters:
         petab.add_global_parameter(sbml_model, par)
     # <EndWorkAround>
 
@@ -589,11 +580,12 @@ def get_observation_model(observable_df: pd.DataFrame
         observables[oid] = {'name': name, 'formula': formula_obs}
         sigmas[oid] = formula_noise
 
+    # NB Is it really useful once we allow observables inside noise formulas?
     # Replace observableIds occurring in error model definition
-    for observable_id, formula in sigmas.items():
-        repl = sp.sympify(formula).subs(
-            observable_id, observables[observable_id]['formula'])
-        sigmas[observable_id] = str(repl)
+    # for observable_id, formula in sigmas.items():
+    #     repl = sp.sympify(formula).subs(
+    #         observable_id, observables[observable_id]['formula'])
+    #     sigmas[observable_id] = str(repl)
 
     noise_distrs = petab_noise_distributions_to_amici(observable_df)
 

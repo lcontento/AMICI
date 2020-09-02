@@ -1207,29 +1207,37 @@ class SbmlImporter:
                     f"{unknown_ids}.")
 
         species_syms = self.symbols['species']['identifier']
-        assignments = {str(c): str(r)
-                       for c, r in self.compartment_assignment_rules.items()}
-        assignments.update({str(s): str(r)
-                            for s, r in self.species_assignment_rules.items()})
 
-        def replace_assignments(formula: str) -> sp.Basic:
+        # CHECK assignments are unused?
+        #assignments = {str(c): str(r)
+        #               for c, r in self.compartment_assignment_rules.items()}
+        #assignments.update({str(s): str(r)
+        #                    for s, r in self.species_assignment_rules.items()})
+
+        def replace_assignments(formula: str, *, locals=None) -> sp.Basic:
             """
             Replace assignment rules in observables
 
             :param formula:
                 algebraic formula of the observable
 
+            :param locals:
+                local symbols to be passed on to `sympify`
+
             :return:
                 observable formula with assignment rules replaced
             """
-            formula = sp.sympify(formula, locals=self.local_symbols)
+            if locals is None:
+                locals = {}
+            locals.update(self.local_symbols)
+            formula = sp.sympify(formula, locals=locals)
             for s in formula.free_symbols:
                 r = self.sbml.getAssignmentRuleByVariable(str(s))
                 if r is not None:
                     rule_formula = _parse_logical_operators(
                         sbml.formulaToL3String(r.getMath()))
                     rule_formula = sp.sympify(
-                        rule_formula, locals=self.local_symbols)
+                        rule_formula, locals=locals)
                     rule_formula = _parse_special_functions(rule_formula)
                     _check_unsupported_functions(rule_formula, 'Rule')
                     formula = formula.replace(s, rule_formula)
@@ -1307,9 +1315,13 @@ class SbmlImporter:
         )
 
         # set user-provided sigmas
+        locals_observables = dict(zip(observables, observable_syms))
         for iy, obs_name in enumerate(observables):
             if obs_name in sigmas:
-                sigma_y_values[iy] = replace_assignments(sigmas[obs_name])
+                sigma_y_values[iy] = replace_assignments(
+                    sigmas[obs_name],
+                    locals=locals_observables
+                )
 
         measurement_y_syms = sp.Matrix(
             [sp.symbols(f'm{symbol}', real=True) for symbol in observable_syms]
@@ -1325,12 +1337,28 @@ class SbmlImporter:
                 noise_distributions.get(y_name, 'normal')))
 
         llh_y_values = []
-        for llhYString, o_sym, m_sym, s_sym \
-                in zip(llh_y_strings, observable_syms,
-                       measurement_y_syms, sigma_y_syms):
+        for i in range(len(observable_syms)):
+            llhYString, o_sym, m_sym, s_sym, s_val = (
+                llh_y_strings[i], observable_syms[i], measurement_y_syms[i],
+                sigma_y_syms[i], sigma_y_values[i]
+            )
             f = sp.sympify(llhYString(o_sym), locals={str(o_sym): o_sym,
                                                       str(m_sym): m_sym,
                                                       str(s_sym): s_sym})
+            # HACK
+            # If the formula for sigma contains the symbol for the observable,
+            # replace it in the formula for the likelihood
+            # and then set the sigma to a dummy value
+            if len(s_val.free_symbols.intersection(observable_syms)) != 0:
+                if not s_val.free_symbols.issubset(observable_syms):
+                    raise NotImplementedError(
+                        'At the moment noise formulas can either contain '
+                        'no observables (only parameters) '
+                        'or only observables (no parameters)'
+                    )
+                f = f.subs(s_sym, s_val)
+                sigma_y_values[i] = 1
+            # END HACK
             llh_y_values.append(f)
         llh_y_values = sp.Matrix(llh_y_values)
 
