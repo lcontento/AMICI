@@ -1839,7 +1839,17 @@ def noise_distribution_to_cost_function(
             y, m, sigma = _get_str_symbol_identifiers(str_symbol)
             r = f'{y} * (1-{sigma}) / {sigma}'
             return f'- loggamma({m}+{r}) + loggamma({m}+1) + loggamma({r}) ' \
-                f'- {m} * log(1-{sigma}) - {r} * log({sigma})'
+                f'- {m} * log({sigma}) - {r} * log(1 - {sigma})'  # changed: CHECK
+    elif noise_distribution in ['negbinomialKoCo19', 'lin-negbinomialKoCo19']:
+        def nllh_y_string(str_symbol):
+            """Negative binomial noise model with mean = y, parameterized via
+            index of dispersion vmr (variance-to-mean ratio)."""
+            y, m, vmr = _get_str_symbol_identifiers(str_symbol)
+            q = f'1 / {vmr}'
+            p = f'1 - 1 / {vmr}'
+            r = f'{y} / ({vmr} - 1)'
+            return f'- loggamma({m}+{r}) + loggamma({m}+1) + loggamma({r}) ' \
+                f'- log({p}) * {m} - log({q}) * {r}'
     elif isinstance(noise_distribution, Callable):
         return noise_distribution
     else:
