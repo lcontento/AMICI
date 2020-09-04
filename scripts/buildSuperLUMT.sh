@@ -11,9 +11,9 @@ cd "${amici_path}/ThirdParty"
 
 if [[ ! -d "SuperLU_MT_3.1" ]]; then
     if [[ ! -f "superlu_mt_3.1.tar.gz" ]]; then
-        wget "https://crd-legacy.lbl.gov/~xiaoye/SuperLU/superlu_mt_3.1.tar.gz"
+        wget "https://portal.nersc.gov/project/sparse/superlu/superlu_mt_3.1.tar.gz"
     fi
-    tar -xzf "superlu_mt_3.1.tar.gz SuperLU_MT_3.1/"
+    tar -xzf "superlu_mt_3.1.tar.gz" "SuperLU_MT_3.1/"
 fi
 
 cd SuperLU_MT_3.1/
