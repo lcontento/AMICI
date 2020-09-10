@@ -2027,6 +2027,8 @@ static int CVAdataStore(CVodeMem cv_mem, CkpntMem ck_mem)
   i = 1;
   do {
 
+    if (i > ca_mem->ca_nsteps) return(CV_FWD_FAIL);
+
     flag = CVode(cv_mem, ck_mem->ck_t1, ca_mem->ca_ytmp, &t, CV_ONE_STEP);
     if (flag < 0) return(CV_FWD_FAIL);
 
