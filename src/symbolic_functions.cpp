@@ -327,4 +327,29 @@ double DDspline_pos(int id1, int id2, double t, int num, ...) {
     return uout;
 }
 
+/**
+ * @brief Smooth cubic transition between 0 and 1.
+ *
+ * Evaluates a smooth (up to the first derivative) transition between
+ * 0 for `x < 0` and 1 for `x > 1`.
+ * The transition is expressed as a cubic polynomial.
+ *
+ */
+double smooth_transition_cubic(const double x)
+{
+    if (x < 0) return 0.0;
+    else if (x > 1) return 1.0;
+    else return std::pow(x, 2) * (3 - 2*x);
+}
+
+/**
+ * @brief Evaluates the derivative of a smooth cubic transition between 0 and 1.
+ *
+ */
+double Dsmooth_transition_cubic(const double x)
+{
+    if (x < 0 || x > 1) return 0.0;
+    else return 6 * x * (1 - x);
+}
+
 } // namespace amici

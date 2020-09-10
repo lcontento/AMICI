@@ -300,7 +300,11 @@ CUSTOM_FUNCTIONS = [
     {'sympy': 'Heaviside',
      'c++': 'amici::heaviside'},
     {'sympy': 'DiracDelta',
-     'c++': 'amici::dirac'}
+     'c++': 'amici::dirac'},
+    {'sympy': 'smooth_transition_cubic',
+     'c++': 'amici::smooth_transition_cubic'},
+    {'sympy': 'Dsmooth_transition_cubic',
+     'c++': 'amici::Dsmooth_transition_cubic'}
 ]
 
 # python log manager

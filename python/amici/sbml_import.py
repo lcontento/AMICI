@@ -25,6 +25,7 @@ from .sbml_utils import (
     _parse_logical_operators,
 )
 from .splines import AbstractSpline
+from .smooth_transitions import SmoothTransition
 from . import has_clibs
 
 
@@ -1017,11 +1018,13 @@ class SbmlImporter:
 
         assert not hasattr(self, 'splines')
         self.splines = []
+        smooth_transitions = []
 
         for rule in rules:
-            # Check whether this rule is a spline rule.
+            # Check whether this rule is an annotated assigment.
             if rule.getTypeCode() == sbml.SBML_ASSIGNMENT_RULE:
                 if not self._discard_annotations:
+                    # Check spline
                     annotation = AbstractSpline.getAnnotation(rule)
                     if annotation is not None:
                         variable = sp.sympify(
@@ -1038,6 +1041,31 @@ class SbmlImporter:
                                 variable, annotation, locals=self.local_symbols
                             )
                         )
+                        continue
+                    # Check smooth transitions
+                    # NB In theory we could just replace the formula with the
+                    #    symbolic function, but formulas may be written back to SBML
+                    #    In order to clean this up, we should do all rule manipulations
+                    #    in sympy.
+                    # NB another possibility (make smooth transitions spline like)
+                    annotation = SmoothTransition.getAnnotation(rule)
+                    if annotation is not None:
+                        variable = sp.sympify(
+                            rule.getVariable(),
+                            locals=self.local_symbols
+                        )
+                        if variable not in parametervars:
+                            raise NotImplementedError(
+                                "SmoothTransition AssignmentRules are only supported for "
+                                "SBML parameters at the moment."
+                            )
+                        transition = SmoothTransition.fromAnnotation(
+                            variable, annotation, locals=self.local_symbols
+                        )
+                        smooth_transitions.append(transition)
+                        if str(variable) in self.parameter_index:
+                            raise Exception('unexpected')
+                        self.sbml.removeParameter(str(variable))
                         continue
 
             # Rate rules should not be substituted for the target of the rate
@@ -1112,6 +1140,23 @@ class SbmlImporter:
                 for assignment in assignments:
                     assignments[assignment] = assignments[assignment].subs(variable, formula)
 
+        # NB this part can be removed when all rule processing is done in sympy
+        # NB will also not work if there are nested smooth transitions
+        if len(smooth_transitions) > 0:
+            for variable in assignments.keys():
+                for st in smooth_transitions:
+                    st.replace_in_all_expressions(
+                        sp.Symbol(variable, real=True),
+                        assignments[variable]
+                    )
+            for st in smooth_transitions:
+                for variable in assignments.keys():
+                    assignments[variable] = assignments[variable].subs(
+                        st.sbmlId,
+                        st.odeModelSymbol
+                    )
+            assignments[st.sbmlId.name] = st.odeModelSymbol
+
         # do this at the very end to ensure we have flattened all recursive
         # rules
         for variable in assignments.keys():
@@ -1119,6 +1164,9 @@ class SbmlImporter:
                 sp.Symbol(variable, real=True),
                 assignments[variable]
             )
+
+        # HACK save assignments. Again, we should remove the writing back of rules to SBML
+        self._saved_assignments = assignments
 
         # Now formulas inside spline objects have been fully expanded
         # and we can determine which parameters each spline depends on
@@ -1232,15 +1280,8 @@ class SbmlImporter:
             locals.update(self.local_symbols)
             formula = sp.sympify(formula, locals=locals)
             for s in formula.free_symbols:
-                r = self.sbml.getAssignmentRuleByVariable(str(s))
-                if r is not None:
-                    rule_formula = _parse_logical_operators(
-                        sbml.formulaToL3String(r.getMath()))
-                    rule_formula = sp.sympify(
-                        rule_formula, locals=locals)
-                    rule_formula = _parse_special_functions(rule_formula)
-                    _check_unsupported_functions(rule_formula, 'Rule')
-                    formula = formula.replace(s, rule_formula)
+                if s.name in self._saved_assignments.keys():
+                    formula = formula.replace(s, self._saved_assignments[s.name])
             return formula
 
         # add user-provided observables or make all species, and compartments

@@ -239,6 +239,10 @@ double DDspline(int id1, int id2, double t, int num, ...);
  */
 double DDspline_pos(int id1, int id2, double t, int num, ...);
 
+/* smooth transitions */
+double smooth_transition_cubic(const double x);
+double Dsmooth_transition_cubic(const double x);
+
 } // namespace amici
 
 #endif /* amici_symbolic_functions_h */
