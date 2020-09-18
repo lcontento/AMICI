@@ -274,11 +274,8 @@ def add_openmp_flags(cxx_flags: List, ldflags: List) -> None:
         cxx_flags.append("-fopenmp")
         ldflags.append("-fopenmp")
     elif sys.platform == 'darwin':
-        if os.path.exists('/usr/local/lib/libomp.a'):
-            log.info("Adding OpenMP flags...")
-            cxx_flags.extend(["-Xpreprocessor", "-fopenmp"])
-            ldflags.extend(["-Xpreprocessor", "-fopenmp", "-lomp"])
-        else:
-            log.info("Not adding OpenMP flags, because /usr/local/lib/libomp.a"
-                     " does not exist. To enable, run `brew install libomp` "
-                     "or add flags manually.")
+        # Make it work on lorenzo's Mac
+        # (everybody else: please install numpy with MKL from conda)
+        log.info("Adding OpenMP flags...")
+        cxx_flags.extend(["-Xpreprocessor", "-fopenmp"])
+        ldflags.extend(["-Xpreprocessor", "-fopenmp", "-liomp5"])
