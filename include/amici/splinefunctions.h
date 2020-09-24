@@ -5,12 +5,12 @@
 #include <vector>
 
 namespace amici {
-    
+
 class Model;
 /**
- * @brief The spline class is an AMICI-own implementation. Instances of this 
- * class are created upon solver setup and the needed splines are set up 
- * (e.g., interpolation of the nodes is performed). 
+ * @brief The spline class is an AMICI-own implementation. Instances of this
+ * class are created upon solver setup and the needed splines are set up
+ * (e.g., interpolation of the nodes is performed).
  * Upon call to a spline fuction, only the evaluation of the spline polynomial
  * is carried out.
  */
@@ -23,22 +23,22 @@ class AbstractSpline {
      * @brief constructor
      * @param model Model instance
      */
-    AbstractSpline(std::vector<realtype> nodes, 
+    AbstractSpline(std::vector<realtype> nodes,
                    std::vector<realtype> node_values,
                    bool equidistant_spacing,
                    bool logarithmic_paraterization);
-  
-    ~AbstractSpline(){};
-    
+
+    virtual ~AbstractSpline(){};
+
     virtual void computeCoefficients() = 0;
-    
-    virtual void computeCoefficientsSensi(int nplist, int spline_offset, 
-                                          realtype *dnodesdp, 
+
+    virtual void computeCoefficientsSensi(int nplist, int spline_offset,
+                                          realtype *dnodesdp,
                                           realtype *dslopesdp) = 0;
-    
-    virtual double getValue(const double t) = 0;
-    
-    virtual double getSensitivity(const double t, const int ip) = 0;
+
+    virtual realtype getValue(const realtype t) = 0;
+
+    virtual realtype getSensitivity(const realtype t, const int ip) = 0;
 
     virtual bool get_node_derivative_by_FD() = 0;
 
@@ -46,62 +46,72 @@ class AbstractSpline {
      * @brief Accessor to equidistant_spacing_ member
      * @return equidistant_spacing flag
      */
-    bool get_equidistant_spacing() {
-        return equidistant_spacing_;
-    }
+    bool get_equidistant_spacing();
 
     /**
      * @brief Accessor to logarithmic_paraterization_ member
      * @return logarithmic_paraterization flag
      */
-    bool get_logarithmic_paraterization() {
-        return logarithmic_paraterization_;
-    }
+    bool get_logarithmic_paraterization();
 
     const int n_nodes() { return n_nodes_; }
 
-    std::vector<realtype> coefficients;
-    
-    std::vector<realtype> coefficients_extrapolate;
-
-    std::vector<realtype> coefficients_sensi;
-    
-    std::vector<realtype> coefficients_extrapolate_sensi;
-
-  protected: 
-  /*
-   * In order to have the main data members private, we need protected 
-   * accessor macros.
-   * */
-  
-    /**
-     * @brief Switch equisitant spacing of spline nodes on or off 
-     * @param equidistant_spacing flag for equidistancy of spline nodes
-     */
-    void set_equidistant_spacing(bool equidistant_spacing) {
-        equidistant_spacing_ = equidistant_spacing;
-    }
-
-    /**
-     * @brief Switch enforced positivity by logarithmic parametrization 
-     * on or off 
-     * @param logarithmic_paraterization flag for logarithmic parametrization
-     */
-    void set_logarithmic_paraterization(bool logarithmic_paraterization) {
-        logarithmic_paraterization_ = logarithmic_paraterization;
-    }
-
+  protected:
     std::vector<realtype> nodes_;
 
     std::vector<realtype> node_values_;
-    
+
+    std::vector<realtype> coefficients;
+
+    std::vector<realtype> coefficients_extrapolate;
+
+    std::vector<realtype> coefficients_sensi;
+
+    std::vector<realtype> coefficients_extrapolate_sensi;
+
+    virtual void computeFinalValue() = 0;
+
+    virtual void computeFinalSensitivity(int nplist, int spline_offset,
+                                         realtype *dspline_valuesdp,
+                                         realtype *dspline_slopesdp) = 0;
+
+    realtype getFinalValue();
+
+    void setFinalValue(realtype finalValue);
+
+    realtype getFinalSensitivity(const int ip);
+
+    void setFinalSensitivity(std::vector<realtype> const finalSensitivity);
+
+  /*
+   * In order to have the main data members private, we need protected
+   * accessor macros.
+   * */
+
+    /**
+     * @brief Switch equisitant spacing of spline nodes on or off
+     * @param equidistant_spacing flag for equidistancy of spline nodes
+     */
+    void set_equidistant_spacing(bool equidistant_spacing);
+
+    /**
+     * @brief Switch enforced positivity by logarithmic parametrization
+     * on or off
+     * @param logarithmic_paraterization flag for logarithmic parametrization
+     */
+    void set_logarithmic_paraterization(bool logarithmic_paraterization);
+
   private:
+    realtype finalValue_;
+
+    std::vector<realtype> finalSensitivity_;
+
     bool equidistant_spacing_ = false;
-    
+
     bool logarithmic_paraterization_ = false;
-    
+
     int n_nodes_;
-    
+
 }; // class SplineFunction
 
 
@@ -109,28 +119,30 @@ class AbstractSpline {
 class HermiteSpline : public AbstractSpline {
   public:
     HermiteSpline() = default;
-      
+
     HermiteSpline(std::vector<realtype> nodes,
                   std::vector<realtype> node_values,
                   std::vector<realtype> node_values_derivative,
-                  SplineBoundaryCondition firstNodeDerivative,
-                  SplineBoundaryCondition lastNodeDerivative,
+                  SplineBoundaryCondition firstNodeBC,
+                  SplineBoundaryCondition lastNodeBC,
+                  SplineExtrapolation firstNodeExtrapol,
+                  SplineExtrapolation lastNodeExtrapol,
                   bool node_derivative_by_FD,
                   bool equidistant_spacing,
                   bool logarithmic_paraterization);
 
     ~HermiteSpline(){};
-    
+
     void computeCoefficients() override;
-    
-    void computeCoefficientsSensi(int nplist, int spline_offset, 
+
+    void computeCoefficientsSensi(int nplist, int spline_offset,
                                   realtype *dnodesdp,
                                   realtype *dslopesdp) override;
-    
-    double getValue(const double t) override;
-    
-    double getSensitivity(const double t, const int ip) override;
-    
+
+    realtype getValue(const double t) override;
+
+    realtype getSensitivity(const double t, const int ip) override;
+
     /**
      * @brief Accessor to node_derivative_by_FD_ member
      * @return node_derivative_by_FD flag
@@ -141,18 +153,38 @@ class HermiteSpline : public AbstractSpline {
 
   private:
     void getCoeffsSensiLowlevel(int ip, int i_node, int nplist, int n_spline_coefficients,
-                                int spline_offset, realtype len, realtype len_m, 
+                                int spline_offset, realtype len, realtype len_m,
                                 realtype len_p, realtype *dnodesdp, realtype *dslopesdp,
                                 realtype *coeffs, realtype *coeffs_extrapol);
 
+    void handleInnerDerviatives();
+
+    void handleBoundaryConditions();
+
+    void computeCoefficientsExtrapolation();
+
+    void computeCoefficientsExtrapolationSensi(int nplist, int spline_offset,
+                                               realtype *dspline_valuesdp,
+                                               realtype *dspline_slopesdp);
+
+    void computeFinalValue() override;
+
+    void computeFinalSensitivity(int nplist, int spline_offset,
+                                 realtype *dspline_valuesdp,
+                                 realtype *dspline_slopesdp) override;
+
     std::vector<realtype> node_values_derivative_;
 
-    SplineBoundaryCondition firstNodeDerivative = SplineBoundaryCondition::linearFinDiff;
-    
-    SplineBoundaryCondition lastNodeDerivative = SplineBoundaryCondition::constant;
+    SplineBoundaryCondition firstNodeBC_ = SplineBoundaryCondition::given;
+
+    SplineBoundaryCondition lastNodeBC_ = SplineBoundaryCondition::given;
+
+    SplineExtrapolation firstNodeEP_ = SplineExtrapolation::linear;
+
+    SplineExtrapolation lastNodeEP_ = SplineExtrapolation::linear;
 
     bool node_derivative_by_FD_ = false;
-    
+
 }; // class HermiteSpline
 
 } // namespace amici
