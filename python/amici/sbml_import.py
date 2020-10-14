@@ -1921,6 +1921,15 @@ def noise_distribution_to_cost_function(
             r = f'{y} / ({vmr} - 1)'
             return f'- loggamma({m}+{r}) + loggamma({m}+1) + loggamma({r}) ' \
                 f'- log({p}) * {m} - log({q}) * {r}'
+    elif noise_distribution in ['binomialKoCo19', 'lin-binomialKoCo19']:
+        def nllh_y_string(str_symbol):
+            """Binomial noise model parameterized via number of trials n"""
+            # observable -> success probability p
+            # measurement -> number of successes k
+            # sigma -> number of trials n
+            p, k, n = _get_str_symbol_identifiers(str_symbol)
+            return f'- loggamma({n}+1) + loggamma({k}+1) + loggamma({n}-{k}+1) ' \
+                   f'- {k} * log({p}) - ({n} - {k}) * log(1-{p})'
     elif isinstance(noise_distribution, Callable):
         return noise_distribution
     else:
