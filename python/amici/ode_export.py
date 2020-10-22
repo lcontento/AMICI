@@ -294,7 +294,8 @@ multiobs_functions = [
 CUSTOM_FUNCTIONS = [
     {'sympy': 'polygamma',
      'c++': 'boost::math::polygamma',
-     'include': '#include <boost/math/special_functions/polygamma.hpp>',
+     'include': ['#define BOOST_MATH_OVERFLOW_ERROR_POLICY ignore_error',
+                 '#include <boost/math/special_functions/polygamma.hpp>'],
      'build_hint': 'Using polygamma requires libboost-math header files.'
      },
     {'sympy': 'Heaviside',
@@ -2449,7 +2450,10 @@ class ODEExporter:
             if 'include' in fun and any(fun['c++'] in line for line in lines):
                 if 'build_hint' in fun:
                     self._build_hints.add(fun['build_hint'])
-                lines.insert(0, fun['include'])
+                if isinstance(fun['include'], str):
+                    lines.insert(0, fun['include'])
+                else:
+                    lines[0:0] = fun['include']
 
         # if not body is None:
         with open(os.path.join(
