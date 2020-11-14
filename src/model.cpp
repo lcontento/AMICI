@@ -826,6 +826,7 @@ void Model::addObservableObjective(realtype &Jy, const int it,
             fJy(nllh.data(), iyt, state_.unscaledParameters.data(),
                 state_.fixedParameters.data(), y_.data(), sigmay_.data(),
                 edata.getObservedDataPtr(it));
+            printf("%f %d %d %f %f\n", nllh.at(0), it, iyt, edata.getTimepoint(it), getTimepoint(it));
             Jy -= nllh.at(0);
         }
     }
