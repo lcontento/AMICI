@@ -11,6 +11,7 @@
 #include <regex>
 #include <typeinfo>
 #include <utility>
+#include <cstdio>
 
 namespace amici {
 
