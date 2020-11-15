@@ -1915,6 +1915,10 @@ def noise_distribution_to_cost_function(
         def nllh_y_string(str_symbol):
             """Negative binomial noise model with mean = y, parameterized via
             index of dispersion vmr (variance-to-mean ratio)."""
+            # NB This formula is numerically unstable when the VMR is near to 1
+            #    While there is certainly cancellations in the formulas for q/p/r,
+            #    the main culprits appear to be the loggammas
+            #    (tried reparametrizing with alpha = vmr - 1 but numerical instability was essentially the same)
             y, m, vmr = _get_str_symbol_identifiers(str_symbol)
             q = f'1 / {vmr}'
             p = f'1 - 1 / {vmr}'
