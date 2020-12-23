@@ -189,6 +189,20 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
                  "AMICI simulation failed:\n%s\nError occured in:\n%s",
                  ex.what(),
                  ex.getBacktrace());
+    } catch (std::domain_error const& ex) {
+        rdata->status = AMICI_ERROR;
+        if (rethrow)
+            throw;
+        warningF("AMICI:simulation",
+                 "AMICI simulation failed:\n%s",
+                 ex.what());
+    } catch (std::overflow_error const& ex) {
+        rdata->status = AMICI_ERROR;
+        if (rethrow)
+            throw;
+        warningF("AMICI:simulation",
+                 "AMICI simulation failed:\n%s",
+                 ex.what());
     }
 
     rdata->processSimulationObjects(preeq.get(), fwd.get(), bwd.get(),
