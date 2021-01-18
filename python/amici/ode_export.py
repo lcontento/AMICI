@@ -30,6 +30,7 @@ from typing import (
 )
 from string import Template
 import sympy.printing.cxxcode as cxxcode
+from sympy.codegen.rewriting import optimize, optims_c99
 from sympy.matrices.immutable import ImmutableDenseMatrix
 from sympy.matrices.dense import MutableDenseMatrix
 from itertools import chain
@@ -2969,7 +2970,7 @@ class ODEExporter:
         ))
         try:
             ret = cxxcode(
-                math,
+                optimize(math, optims_c99), # e.g., log(1 + x) --> logp1(x)
                 standard='c++11',
                 user_functions=user_functions
             )
