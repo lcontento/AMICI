@@ -353,7 +353,7 @@ def _can_import_model(model_name: str, model_output_dir: str) -> bool:
     """
     # try to import (in particular checks version)
     try:
-        with add_path(model_output_dir):
+        with amici.add_path(model_output_dir):
             model_module = importlib.import_module(model_name)
     except ModuleNotFoundError:
         return False
