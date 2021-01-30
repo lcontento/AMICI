@@ -21,8 +21,6 @@
 #include <memory>
 #include <type_traits>
 
-#include <boost/throw_exception.hpp>
-
 // ensure definitions are in sync
 static_assert(amici::AMICI_SUCCESS == CV_SUCCESS,
               "AMICI_SUCCESS != CV_SUCCESS");
