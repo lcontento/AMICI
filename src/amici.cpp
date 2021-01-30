@@ -205,22 +205,21 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
         warningF("AMICI:simulation",
                  "AMICI simulation failed:\n%s",
                  ex.what());
+    } catch (boost::wrapexcept<std::domain_error> const& ex) {
+        rdata->status = AMICI_ERROR;
+        if (rethrow)
+            throw;
+        warningF("AMICI:simulation",
+                 "AMICI simulation failed:\n%s",
+                 ex.what());
+    } catch (boost::wrapexcept<std::overflow_error> const& ex) {
+        rdata->status = AMICI_ERROR;
+        if (rethrow)
+            throw;
+        warningF("AMICI:simulation",
+                 "AMICI simulation failed:\n%s",
+                 ex.what());
     }
-  } catch (boost::wrapexcept<std::domain_error> const& ex) {
-      rdata->status = AMICI_ERROR;
-      if (rethrow)
-          throw;
-      warningF("AMICI:simulation",
-               "AMICI simulation failed:\n%s",
-               ex.what());
-  } catch (boost::wrapexcept<std::overflow_error> const& ex) {
-      rdata->status = AMICI_ERROR;
-      if (rethrow)
-          throw;
-      warningF("AMICI:simulation",
-               "AMICI simulation failed:\n%s",
-               ex.what());
-  }
 
     rdata->processSimulationObjects(preeq.get(), fwd.get(), bwd.get(),
                                     posteq.get(), model, solver, edata);
