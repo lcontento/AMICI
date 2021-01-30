@@ -21,6 +21,8 @@
 #include <memory>
 #include <type_traits>
 
+#include <boost/throw_exception.hpp>
+
 // ensure definitions are in sync
 static_assert(amici::AMICI_SUCCESS == CV_SUCCESS,
               "AMICI_SUCCESS != CV_SUCCESS");
@@ -204,6 +206,21 @@ AmiciApplication::runAmiciSimulation(Solver& solver,
                  "AMICI simulation failed:\n%s",
                  ex.what());
     }
+  } catch (boost::wrapexcept<std::domain_error> const& ex) {
+      rdata->status = AMICI_ERROR;
+      if (rethrow)
+          throw;
+      warningF("AMICI:simulation",
+               "AMICI simulation failed:\n%s",
+               ex.what());
+  } catch (boost::wrapexcept<std::overflow_error> const& ex) {
+      rdata->status = AMICI_ERROR;
+      if (rethrow)
+          throw;
+      warningF("AMICI:simulation",
+               "AMICI simulation failed:\n%s",
+               ex.what());
+  }
 
     rdata->processSimulationObjects(preeq.get(), fwd.get(), bwd.get(),
                                     posteq.get(), model, solver, edata);
