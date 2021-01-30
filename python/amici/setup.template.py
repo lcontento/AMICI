@@ -94,6 +94,14 @@ def get_extension() -> Extension:
     if 'AMICI_LDFLAGS' in os.environ:
         linker_flags.extend(os.environ['AMICI_LDFLAGS'].split(' '))
 
+    # Make boost return Nan/inf
+    # instead of raising std::domain_error / std::overflow_error
+    cxx_flags.extend([
+        "-DBOOST_MATH_OVERFLOW_ERROR_POLICY=ignore_error",
+        "-DBOOST_MATH_POLE_ERROR_POLICY=ignore_error",
+        "-DBOOST_MATH_DOMAIN_ERROR_POLICY=ignore_error",
+    ])
+
     ext_include_dirs = [
         os.getcwd(),
         os.path.join(amici_path, 'include'),
